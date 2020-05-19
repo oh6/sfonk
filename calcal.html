@@ -1,0 +1,366 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Calcal</title></head>
+<body>
+
+<h1> Calcal </h1>
+
+<p>
+Calcal tracks calories and a selection of other food categories,
+and tracks stores of ingredients, container weights, and prepared
+recipes.
+</p>
+
+<h2> Options </h2>
+
+<p>
+The <code>-r</code> option prints a running total.  I pretty
+much never use it and it probably should be removed.
+</p>
+
+<p>
+The <code>-s</code> option puts <code>calcal</code> into
+"summarize" mode, where all lines from the input are appended to
+<code>~/.calcal.log</code>, any lines recording eating anything are
+rolled up into a single <code>overflow</code> item, and the current
+stores, new prepared recipes, and other items are copied to the
+output, with the current date in a comment at the top.
+</p>
+
+<p>
+I record whatever I'm eating for the day in a file, and the next
+day run the file through <code>calcal -s</code> in the editor to
+bring it up to date.  Note that if a file is summarized multiple
+times without replacing the contents this way, it will get recorded
+multiple times.
+</p>
+
+<h1> Input Format </h1>
+
+<h2> General </h2>
+
+<p>
+Entries are one per line.  Any entry may have a comment,
+introduced by <code>#</code> and continuing until the end of the
+line.
+</p>
+
+<p>
+A comment of the form <code># YYYY/MM/DD</code> is taken to be
+the day's date, and is used to avoid using recorded weights in
+<code>~/.calcal.log</code> for the current day.
+</p>
+
+<p>
+On startup, <code>calcal</code> reads the entries in
+<code>~/.calories</code>, which can be used to keep general nutritional
+information, unit conversions, and equivalents.
+</p>
+
+<h2> Nutritional information </h2>
+
+<p>
+<em>name</em> <code>:</code> <em>calories</em>[<code>VF</code>] [
+<em>amount</em><code>V</code> ] [ <em>amount</em><code>F</code> ]
+/ <em>quantity</em>
+</p>
+
+<p>
+<em>Name</em> may contain spaces.
+</p>
+
+<p>
+<em>Calories</em> is just a number.  Feel free to use calories,
+kilocalories, kilojoules, or whatever's easiest.  Note that this
+can be negative, for use when recording exercise or the special
+<code>day</code> and <code>overflow</code> items (see below.)
+</p>
+
+<p>
+<em>Quantity</em> may have a unit, which must be right next to
+the number with no white space between them.
+</p>
+
+<p>
+The <code>V</code> and <code>F</code> amounts are optional
+attributes.  I added them to keep track of stuff that my dietician
+considers vegetables and fruit.  As a convenience, I can put the
+<code>V</code> or <code>F</code> immediately after the calorie
+amount (no spaces) and <em>quantity</em> (after conversion, see
+below) will be recorded as the amount for that attribute.
+</p>
+
+<p>
+Special items:
+</p>
+
+<p>
+The special item <code>day</code> determines my daily calorie
+intake target.  This is meant to be a negative number.  The way I
+use it, I end my daily log with <code>1 day</code>, and use
+<code>calcal -s</code> to roll it over when I start the next day's
+log.
+</p>
+
+<p>
+The special item <code>overflow</code> is used to roll over
+calorie amounts from one day to the next.
+</p>
+
+
+<h2> Unit Conversion </h2>
+
+<p>
+<em>unit</em> = <em>amount</em>
+</p>
+
+<p>
+<em>Amount</em> can't have a unit, that is, you can't
+define <code>ounce</code> and then use it to define <code>pound</code>.
+Sorry!
+</p>
+
+<p>
+The special unit <code>DELTA</code> (all upper case) is used
+to suggest a calorie target for the day when I've gone way
+overboard.
+</p>
+
+<p>
+Use whatever units you prefer; just make sure to be consistent.
+</p>
+
+<h2> Equivalents </h2>
+
+<p>
+<em>quantity</em> <em>name</em> <code>~</code> <em>equivalent</em>
+</p>
+
+<p>
+I originally added this to facilitate conversions between weights
+and volumes for recipes.  Make sure that <em>quantity</em> includes
+a unit!
+</p>
+
+<h2> Eaten items </h2>
+
+<p>
+<em>quantity</em>[<code>+-</code>] <em>item</em>[<code>+-</code>]
+[ <code>@</code> <em>nutritional info.</em> ]
+</p>
+
+<p>
+The big one!  Most of my time is spent fretting over these.
+</p>
+
+<p>
+If <em>quantity</em> ends with <code>+</code> or <code>-</code>,
+this is used to update the ingredient store information, and has
+no effect on recorded calorie intake.  Ingredient stores are preserved
+when summarizing, so I can do something like:
+</p>
+
+<p>
+<code>honey+ 1000</code>
+</p>
+
+<p>
+to record that I got in a 1-kilogram container of honey.  Later
+ordinary items will subtract from this
+store, bottoming out when it hits zero.  There ought to be a warning
+if that happens, but there isn't.
+</p>
+
+<p>
+I use this to catch any errors in recording.
+If I've used up a container but there's still something left
+in the ingredient store, I forgot to record something.
+</p>
+
+<p>
+<em>Item</em> is a name from the nutritional database, and can
+contain spaces.  If it ends with <code>+</code> or <code>-</code>,
+this is taken to be a container weighing.  Suppose I have two
+entries like this:
+</p>
+
+<pre>
+ketchup 980+
+ketchup 900-
+</pre>
+
+<p>
+The <code>-</code> entry is subtracted from the <code>+</code>
+entry and is used as the amount.  Note that you can't currently use
+<code>+</code> or <code>-</code> on <em>quantity</em> if you use
+it with <em>item</em>.  If I've already recorded a weight for a
+container, I can omit the <code>+</code> entry and <code>calcal</code>
+will find the most recent weighing in <code>~/.calcal.log</code>.
+</p>
+
+<p>
+For one-off entries or when I don't want to use the nutritional
+database, I can add the nutritional information in-line, separating
+it from <em>item</em> with <code>@</code>:
+</p>
+
+<pre>
+290 soy milk @ 90/250
+</pre>
+
+<p>
+This doesn't work with container weights either, sorry!
+</p>
+
+<h2> Prepared Recipes </h2>
+
+<p>
+<em>name</em> <code>/</code> <em>servings</em> <code>{</code>
+</p>
+
+<p>
+[...]
+</p>
+
+<p>
+<code>}</code>
+</p>
+
+<p>
+Entries between the braces are taken to be part of some recipe,
+and after sumarizing it shows up as a single item.
+</p>
+
+<pre>
+pancakes/4 {
+    188 flour
+    38  sugar
+    45	oil
+    400 soy milk
+}
+</pre>
+
+<p>
+turns into
+</p>
+
+<p>
+<code>pancakes:</code> <em>calories</em><code>/</code>4
+</p>
+
+<p>
+after summarizing.  I suppose it might also make sense to add this to the
+ingredient store, but I haven't implemented it yet.
+</p>
+
+<h1> Example </h1>
+
+<p>
+Here's my current "day card":
+</p>
+
+<pre>
+# 2020/05/18
+day:		-2300/1
+horseradish:	18/14		# bubbies
+chocolate:	200/40		# nn dark
+soy milk:	90/250		# silk unsweetened
+apricot jam:	1666/671
+oatmeal:        1793/4
+boksf:          2608 761V/4
+
+51+	honey
+449+	apricot jam
+1727+	soy milk
+
+1725	overflow
+51	honey
+1	oatmeal
+1	boksf
+26	brown sugar
+3.3	walking
+550	potato
+1027	olive oil-
+-15	olive oil
+550	ketchup-
+1	day
+</pre>
+
+<p>
+Notes:
+</p>
+
+<p>
+<code>boksf</code> is my abbreviation for bok choy stir-fry.
+</p>
+
+<p>
+The <code>-15 olive oil</code> entry is there to compensate for
+how much oil got left on the pan (I was making oven fries) and in
+the mixing bowl.  If I was keeping track of how much olive oil I
+had on hand, this would mess that up, something I'll have to fix
+someday.
+</p>
+
+<p>
+Running this through <code>calcal</code>:
+</p>
+
+<pre>
+$ calcal card
+  1725.0   1725.0      1.0 overflow
+   155.1     51.0      3.0 honey (by weight)
+   448.2      1.0    448.2 oatmeal
+   652.0      1.0    652.0 boksf
+    98.0     26.0      3.8 brown sugar
+  -168.3      3.3    -51.0 walking
+   423.3    550.0      0.8 potato
+   274.0     31.0      8.8 olive oil
+  -132.6    -15.0      8.8 olive oil
+   130.0    143.0      0.9 ketchup (by weight)
+ -2300.0      1.0  -2300.0 day (190 veg 0 fruit) (net 1305 target 1225 offset 79)
+1305
+</pre>
+
+<p>
+I'm still getting back on track after overdoing it the day
+before yesterday.
+</p>
+
+<p>
+I also appear to be reporting some numbers after rounding, and
+others before rounding, which is why <code>net</code>, <code>target</code>,
+and <code>offset</code> don't add up.
+</p>
+
+<p>
+Here's what the day card looks like after rolling it over with
+<code>calcal -s</code>:
+</p>
+
+<pre>
+# 2020/05/19
+day:            -2300/1
+horseradish:    18/14           # bubbies
+chocolate:      200/40          # nn dark
+soy milk:       90/250          # silk unsweetened
+apricot jam:    1666/671
+oatmeal:        1793/4
+boksf:          2608 761V/4
+
+0+      honey
+449+    apricot jam
+1727+   soy milk
+
+1305    overflow # target: 1225
+</pre>
+
+<p>
+The <code># target: 1225</code> is a magic comment that
+<code>calcal</code> uses to keep track of how I'm doing getting
+back on track.
+</p>
+
+</body>
+</html>
