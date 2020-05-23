@@ -32,6 +32,31 @@ class nval:
 	def __div__(self, x):
 		return nval(self.c / x, self.v / x, self.f / x)
 
+	def __rmul__(self, x):
+		return nval(self.c * x, self.v * x, self.f * x)
+
+	def __mul__(self, x):
+		return nval(self.c * x, self.v * x, self.f * x)
+
+	def __add__(self, x):
+		return nval(self.c + x.c, self.v + x.v, self.f + x.f)
+
+	def others(self):
+		s = ""
+		if self.v or self.f:
+			if self.v:
+				s += "%d veg" % self.v
+			if self.f:
+				s += "%s%d fruit" % (" " if s else "", self.f)
+
+		return s
+			
+
+	def round(self):
+		self.c = round(self.c)
+		self.v = round(self.v)
+		self.f = round(self.f)
+
 
 class dbent:
 	def __init__(self, v, c):
@@ -53,9 +78,7 @@ class Cal:
 		self.summarize = None
 		self.running = False
 		self.store = {}
-		self.tc = 0.0
-		self.tv = 0.0
-		self.tf = 0.0
+		self.nv = nval(0)
 		self.nr = -1
 		self.ddelta = 0
 		self.dmre = re.compile("^# [0-9]{4}(/[0-9]{2}){2}\n")
@@ -262,10 +285,11 @@ class Cal:
 			self.error("missing serving count")
 			return False
 
-		self.recpend = (v[0], int(v[1]), nval(self.tc, self.tv, self.tf))
-		self.tc = 0
-		self.tv = 0
-		self.tf = 0
+		self.recpend = (v[0], int(v[1]), self.nv)
+		self.nv = nval(0)
+
+		if not self.summarize:
+			sys.stdout.write("### begin %s\n" % l[:-1].strip())
 
 		return True
 
@@ -280,12 +304,14 @@ class Cal:
 
 		(name, nserv, onv) = self.recpend
 		self.recpend = None
-		nv = nval(round(self.tc), round(self.tv), round(self.tf))
-		self.db[name] = dbent(nv / nserv, "")
-		self.newdb.append((name, nv, nserv))
-		self.tc = onv.c
-		self.tv = onv.v
-		self.tf = onv.f
+		self.nv.round()
+		self.db[name] = dbent(self.nv / nserv, "")
+		self.newdb.append((name, self.nv, nserv))
+		self.nv = onv;
+
+		if not self.summarize:
+			sys.stdout.write("### end %s/%d\n" % (name, nserv))
+
 		return True
 
 
@@ -388,31 +414,29 @@ class Cal:
 		else:
 			ic = ""
 
-		self.tc += v * mv.c
-		self.tv += v * mv.v
-		self.tf += v * mv.f
+		self.nv += v * mv
 		if self.ddelta:
 			if ig == "overflow":
 				m = re.search("# target: ([0-9]+)", ol)
 				if m:
 					self.dtarget = int(m.group(1))
 				else:
-					self.dtarget = self.tc
+					self.dtarget = self.nv.c
 			elif ig == "day":
-				ic = " (%d veg %d fruit)" % \
-					(round(self.tv), round(self.tf))
-				self.tv = 0
-				self.tf = 0
-				if self.tc > 0 and self.dtarget:
+				ic = self.nv.others()
+				if ic:
+					ic = " (%s)" % ic
+				self.nv = nval(self.nv.c)
+				tc = round(self.nv.c)
+				if tc > 0 and self.dtarget:
 					self.dtarget -= self.ddelta
 					if self.dtarget < 0:
 						self.dtarget = 0
 					ic += " (net %d target %d offset %d)" % \
-						(round(self.tc), self.dtarget,
-							self.tc - self.dtarget)
+						(tc, self.dtarget, tc - self.dtarget)
 		if not self.summarize:
 			if self.running:
-				sys.stdout.write("%8d " % self.tc)
+				sys.stdout.write("%8d " % self.nv.c)
 			sys.stdout.write("%8.1f %8.1f %8.1f %s%s\n" % 
 				 (v * mv.c, v, mv.c, ig, ic))
 
@@ -453,15 +477,15 @@ class Cal:
 					(first, int(self.store[i] + 0.5), i))
 				first = ""
 			sys.stdout.write("\n%d\toverflow" %
-				int(self.tc + 0.5))
+				round(self.nv.c))
 			if self.dtarget:
 				sys.stdout.write(" # target: %d" % self.dtarget)
 			sys.stdout.write("\n")
 		else:
-			sys.stdout.write("%d" % round(self.tc))
-			if self.tv > 0:
+			sys.stdout.write("%d" % round(self.nv.c))
+			if self.nv.v > 0:
 				sys.stdout.write(" %dV" % round(self.tv))
-			if self.tf > 0:
+			if self.nv.f > 0:
 				sys.stdout.write(" %dF" % round(self.tf))
 			sys.stdout.write("\n")
 
