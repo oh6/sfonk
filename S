@@ -1,0 +1,307 @@
+#!/bin/sh -u
+
+d=$HOME/.S
+mr='a 2 3 4 5 6 7 8 9 10 j q k'
+ms='S C D H'
+
+
+if [ ! -d $d ]; then
+	mkdir -p $d
+	for i in $mr; do for j in $ms; do echo $i$j; echo $i$j; done done > $d/deck
+	dd bs=208 count=1 < /dev/urandom 2>/dev/null |
+		od -v -t u2 |
+		sed -e 's/^[0-9]*[ 	]*//' -e 's/[ 	][ 	]*/ /g' |
+		tr ' ' '\012' |
+		sed '/^[ 	]*$/d' > $d/rand
+	paste $d/rand $d/deck | sort | cut -f 2 > $d/sdeck
+	mv -f $d/sdeck $d/deck
+	for i in 0 1 2 3 4 5 6 7 8 9; do
+		case $i in
+		0|3|6|9) n=6;;
+		*) n=5;;
+		esac
+		set X `sed -n 1,${n}p $d/deck`
+		sed 1,${n}d $d/deck > $d/deck2
+		mv -f $d/deck2 $d/deck
+		shift
+		set X "$@" "B" "$1"
+		shift
+		shift
+		echo "$@"
+	done > $d/table
+	(cat $d/deck; echo '###'; cat $d/table) > $d/state
+	ci -l -q -mx -t-x $d/state
+fi
+
+while : ; do
+	n=0
+	set X `wc -l < $d/deck`
+	shift
+	cid=$1
+	echo "($cid)" `sed -e 1,10d -e 's/^B //' -e 's/ .*//' $d/table`
+	while read a; do
+		set X $a
+		shift
+		b=0
+		echo -n $n
+		for i do
+			case "$i" in
+			B) b=1; continue ;;
+			esac
+			case "$b" in
+			0) echo -n " ###"; continue;;
+			esac
+			case "$i" in
+			10*) y=;;
+			*) y=' ';;
+			esac
+			echo -n " $y$i"
+		done
+		echo
+		n=`expr $n + 1`
+		case $n in
+		10) break ;;
+		esac
+	done < $d/table
+
+	if [ $cid -lt 10 ]; then
+		if [ `wc -l < $d/table` -eq 18 ]; then
+			echo Done!
+		else
+			x=
+			y=
+			while read l; do
+				y="y$y"
+				case $y in
+				yyyyyyyyyyy) break ;;
+				esac
+
+				set X $l
+				shift
+				case $1 in
+				B) ;;
+				*) break ;;
+				esac
+
+				s=`echo $l | tr -cd CDHS`
+				case $s in
+				CCCCCCCCCCCCC) ;;
+				DDDDDDDDDDDDD) ;;
+				HHHHHHHHHHHHH) ;;
+				SSSSSSSSSSSSS) ;;
+				'') continue ;;
+				*) break ;;
+				esac
+
+				set X `echo $l | tr -d 'BCDHS '`
+				shift
+				if [ "X$*" != "Xkqj1098765432a" ]; then
+					break
+				fi
+
+				x="x$x"
+
+				case "$x" in
+				xxxxxxxx) echo Done!; break ;;
+				esac
+			done < $d/table
+		fi
+	fi
+
+	echo -n '> '
+	read c
+	case "$c" in
+	q) exit ;;
+	d) 
+		if [ `wc -l < $d/deck` -lt 10 ]; then
+			echo "no cards left to deal"
+			continue
+		fi
+		if [ `sed 10q $d/table | egrep -c '[^B ]'` -lt 10 ]; then
+			echo "all piles must have cards"
+			continue
+		fi
+		sed 10q $d/deck > $d/deck2
+		paste -d' ' $d/table $d/deck2 > $d/table2
+		mv -f $d/table2 $d/table
+		sed 1,10d $d/deck > $d/deck2
+		mv -f $d/deck2 $d/deck
+		(cat $d/deck; echo '###'; cat $d/table) > $d/state
+		ci -l -q -mx $d/state
+		continue
+		;;
+	u)
+		rcs -q -u $d/state
+		rcs -q -o1 $d/state
+		co -q -f -l $d/state
+		sed '/###/,$d' $d/state > $d/deck
+		sed -n '/###/,$p' $d/state | sed '/###/d' > $d/table
+		continue
+		;;
+	n) rm -rf $d; exec $0 ;;
+	esac
+
+	set X `echo $c | sed 's/./& /g'`
+	shift
+
+	unset c cr cs
+
+	case $# in
+	2) ;;
+	*) echo move command requires source and destination piles; continue ;;
+	esac
+
+	osc=$1
+	shift
+	odc=$1
+	shift
+
+	case "$osc" in
+	[0-9]) sc=`expr $osc + 1` ;;
+	*) echo valid source piles are 0 to 9; continue ;;
+	esac
+
+	cs=`sed -n ${sc}p $d/table | sed -e 's/.* B//' -e 's/.* //' | tr -cd 'CDHS'`
+	case "$cs" in
+	'') echo no cards in source pile; continue ;;
+	esac
+
+	case "$odc" in
+	[0-9])
+		dc=`expr $odc + 1`
+		odr=`sed -n ${dc}p $d/table | sed -e 's/.* B//' -e 's/.* //' -e 's/.$//'`
+		dr=`echo XX $mr | sed -e "s/ *$odr.*//" -e 's/.* //'`
+
+		if [ "X$dr" != "X" ]; then
+			cr=$dr
+		else
+			set X `sed -n ${sc}p $d/table | sed -e 's/.* B//'`
+			shift
+			cr=none
+			for i do
+				s=`echo $i | tr -cd CDHS`
+				if [ "X$s" != "X$cs" ]; then
+					cr=none
+					continue
+				fi
+
+				if [ "X$cr" != "Xnone" ]; then
+					nr=`echo $mr XX | sed -e "s/ $tr .*//" -e 's/.* //'`
+					tr=`echo $i | tr -d CDHS`
+					if [ "X$nr" == "X$tr" ]; then
+						continue
+					fi
+					cr=none
+				fi
+
+
+				if [ "Xnone" == "X$cr" ]; then
+					cr=`echo $i | tr -d CDHS`
+					tr=$cr
+					continue
+				fi
+			done
+
+			case "$cr" in
+			none) echo oops! no rank found in source pile; continue ;;
+			esac
+		fi
+		;;
+	f)
+		cr=k
+                cs=`sed -n ${sc}p $d/table | sed -e 's/.* B//' -e 's/.* //' | tr -cd CDHS`
+		dc=f
+		;;
+	*)
+		echo valid destination piles are 0 to 9 or f
+		continue
+		;;
+	esac
+
+	c="$cr$cs"
+
+	set X `sed -n ${sc}p $d/table`
+	shift
+	cf=0
+	cok=0
+	wps=
+	lps=
+	ps=
+	b=0
+	cc=
+	while : ; do
+		case $# in
+		0) break ;;
+		esac
+
+		i=$1
+		shift
+
+		case "$i" in
+		B) wps="$wps $i"; b=1; continue ;;
+		esac
+
+		case "$b" in
+		0) wps="$wps $i"; continue;
+		esac
+
+		if [ "X$i" = "X$c" ]; then
+			lps="$wps"
+			cc=$c
+			ps=$c
+			cf=1
+			set X "$@"
+			cok=$#
+			shift
+		elif [ "X$i" = "X$cc" ]; then
+			ps="$ps $i"
+			cf=1
+		else
+			cok=0
+			cc=
+		fi
+
+		wps="$wps $i"
+
+		case "$cok" in
+		0) continue ;;
+		esac
+
+		s=`echo $cc | sed 's/.*\(.\)$/\1/'`
+		r=`echo $cc | sed 's/.$//'`
+		r=`echo $mr | sed "s/ *$r.*//" | sed 's/.* //'`
+		cc=$r$s
+	done
+
+	case "$cf" in
+	0) echo "card $c not in pile $osc"; continue ;;
+	esac
+
+	case "$cok" in
+	0) echo cards above $c in pile $osc are not in sequence; continue ;;
+	esac
+
+	case "$dc" in
+	f)
+		case $cok in
+		13) echo B >> $d/table; set X `wc -l $d/table`; dc=$2 ;;
+		*) echo cards above $c in pile $osc are not a complete suit; continue ;;
+		esac
+		;;
+	esac
+
+	sed ${sc},'$'d $d/table > $d/table2
+	echo " " $lps | sed 's/ \([^ ][^ ]*\) B$/ B \1/' >> $d/table2
+	sed 1,${sc}d $d/table >> $d/table2
+	mv -f $d/table2 $d/table
+
+	sed ${dc},'$'d $d/table > $d/table2
+	set X `sed -n ${dc}p $d/table` $ps
+	shift
+	echo "$@" >> $d/table2
+	sed 1,${dc}d $d/table >> $d/table2
+	mv -f $d/table2 $d/table
+
+	(cat $d/deck; echo '###'; cat $d/table) > $d/state
+	ci -l -q -mx $d/state
+done
