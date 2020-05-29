@@ -41,6 +41,14 @@ class nval:
 	def __add__(self, x):
 		return nval(self.c + x.c, self.v + x.v, self.f + x.f)
 
+	def __str__(self):
+		s = "%d" % self.c
+		if self.v:
+			s += " %dV" % self.v
+		if self.f:
+			s += " %dF" % self.f
+		return s
+
 	def others(self):
 		s = ""
 		if self.v or self.f:
@@ -69,6 +77,61 @@ class Cal:
 		return "%s/.calcal.log" % os.environ["HOME"]
 
 
+	def cleanlog(self):
+		dmre = re.compile("^# [0-9]{4}(/[0-9]{2}){2}\n")
+		lfn = self.logfn()
+		f = open(lfn)
+		nlfn = "%s.new" % self.logfn()
+		nf = open(nlfn, "w")
+		tfn = "%s.tmp" % self.logfn()
+		ltfn = "%s.ltmp" % self.logfn()
+		ft = None
+		dm = None
+		ldm = None
+		ed = "vi"
+		for i in ["VISUAL", "EDITOR"]:
+			if i in os.environ:
+				ed = os.environ[i]
+				break
+		while True:
+			l = f.readline()
+			if not l or dmre.match(l):
+				if dm:
+					ft.close()
+				elif not ldm and not l:
+					break
+				if dm and ldm and dm == ldm:
+					if os.system("diff %s %s" % (ltfn, tfn)):
+						sys.stdout.write("overwrite? ")
+						sys.stdout.flush()
+						a = sys.stdin.readline()
+						if a.lower() == "y\n":
+							ldm = None
+						else:
+							os.system("%s %s" % (ed, tfn))
+					else:
+						print "skipping %s" % ldm
+						ldm = None
+				if ldm:
+					ft = open(ltfn, "r")
+					for l2 in ft:
+						nf.write(l2)
+					ft.close
+				if dm:
+					os.rename(tfn, ltfn)
+				ldm = dm
+				dm = l
+				if l:
+					ft = open(tfn, "w")
+
+			if l:
+				ft.write(l)
+		f.close()
+		nf.close()
+		os.system("mv -i %s %s" % (nlfn, lfn))
+		sys.exit(0)
+
+
 	def __init__(self, opts):
 		self.units = {}
 		self.eq = {}
@@ -76,16 +139,12 @@ class Cal:
 		self.recipes = {}
 		self.recipe = None
 		self.summarize = None
-		self.running = False
 		self.store = {}
 		self.nv = nval(0)
 		self.nr = -1
 		self.ddelta = 0
-		self.dmre = re.compile("^# [0-9]{4}(/[0-9]{2}){2}\n")
-		self.daymark = None
 		self.dtarget = None
 		self.cw = {}
-		self.cwloaded = False
 		self.recpend = None
 		self.newdb = []
 		self.add_ig("overflow:	1/1\n")
@@ -95,8 +154,8 @@ class Cal:
 			if i[0] == "-s":
 				self.summarize = open(self.logfn(), "a")
 				sys.stdout.write("# %s\n" % time.strftime("%F").replace("-","/"))
-			elif i[0] == "-r":
-				self.running = True
+			elif i[0] == "-c":
+				self.cleanlog()
 			elif i[0] == "-h":
 				self.help()
 			else:
@@ -106,8 +165,8 @@ class Cal:
 	def help(self):
 		sys.stdout.write(usagemsg())
 		sys.stdout.write("""\
+-c - clean log file
 -h - this message
--r - print running total
 -s - summarize
 """)
 		sys.exit(0)
@@ -238,36 +297,10 @@ class Cal:
 		return True
 
 
-	def loadcw(self):
-		if self.cwloaded:
-			return
-
-		tcw = {}
-		cwre = re.compile("^\\s*([0-9]\\S*)\\s+(\\S.*)-\\s*$")
-		f = open(self.logfn(), "r")
-		for l in f:
-			if l == self.daymark:
-				break
-			m = cwre.search(l)
-			if not m:
-				continue
-			ig = m.group(2)
-			v = m.group(1)
-			if ig in self.db:
-				tcw[ig] = self.unify(v)
-		f.close()
-
-		for i in tcw.items():
-			if not i[0] in self.cw:
-				self.cw[i[0]] = i[1]
-
-
 	def lcw(self, ig):
 		if not ig in self.cw:
-			self.loadcw()
-			if not ig in self.cw:
-				self.error("no last weighing for %s" % ig)
-				return None
+			self.error("no last weighing for %s" % ig)
+			return None
 
 		return self.cw[ig]
 
@@ -289,7 +322,7 @@ class Cal:
 		self.nv = nval(0)
 
 		if not self.summarize:
-			sys.stdout.write("### begin %s\n" % l[:-1].strip())
+			sys.stdout.write("%s\n" % l)
 
 		return True
 
@@ -304,13 +337,14 @@ class Cal:
 
 		(name, nserv, onv) = self.recpend
 		self.recpend = None
-		self.nv.round()
-		self.db[name] = dbent(self.nv / nserv, "")
-		self.newdb.append((name, self.nv, nserv))
+		nv = self.nv
 		self.nv = onv;
+		nv.round()
+		self.db[name] = dbent(nv / nserv, "")
+		self.newdb.append((name, nv, nserv))
 
 		if not self.summarize:
-			sys.stdout.write("### end %s/%d\n" % (name, nserv))
+			sys.stdout.write("}\n%s: %s/%d\n" % (name, nv, nserv))
 
 		return True
 
@@ -320,9 +354,6 @@ class Cal:
 
 
 	def xcal(self, l):
-		if not self.daymark and self.dmre.match(l):
-			self.daymark = l
-			
 		ol = l
 		l = l.strip()
 		if self.summarize:
@@ -382,6 +413,7 @@ class Cal:
 		ov = v
 		v = self.unify(v)
 		if cwval:
+			self.cw[ig] = v
 			v = cwval - v
 		sig = ig.split("@")
 		if len(sig) == 1:
@@ -435,8 +467,6 @@ class Cal:
 					ic += " (net %d target %d offset %d)" % \
 						(tc, self.dtarget, tc - self.dtarget)
 		if not self.summarize:
-			if self.running:
-				sys.stdout.write("%8d " % self.nv.c)
 			sys.stdout.write("%8.1f %8.1f %8.1f %s%s\n" % 
 				 (v * mv.c, v, mv.c, ig, ic))
 
@@ -474,7 +504,12 @@ class Cal:
 			first = "\n"
 			for i in self.store:
 				sys.stdout.write("%s%d+\t%s\n" %
-					(first, int(self.store[i] + 0.5), i))
+					(first, round(self.store[i]), i))
+				first = ""
+			first = "\n"
+			for i in self.cw:
+				sys.stdout.write("%s%d\t%s+\n" %
+					(first, self.cw[i], i))
 				first = ""
 			sys.stdout.write("\n%d\toverflow" %
 				round(self.nv.c))
@@ -483,10 +518,9 @@ class Cal:
 			sys.stdout.write("\n")
 		else:
 			sys.stdout.write("%d" % round(self.nv.c))
-			if self.nv.v > 0:
-				sys.stdout.write(" %dV" % round(self.tv))
-			if self.nv.f > 0:
-				sys.stdout.write(" %dF" % round(self.tf))
+			o = self.nv.others()
+			if o:
+				sys.stdout.write(" (%s)" % o)
 			sys.stdout.write("\n")
 
 
@@ -505,9 +539,8 @@ def usage(s = None):
 	sys.exit(2)
 
 
-
 try:
-	(opts, args) = getopt.getopt(sys.argv[1:], "hrs")
+	(opts, args) = getopt.getopt(sys.argv[1:], "chs")
 except getopt.GetoptError, err:
 	usage(str(err))
 
