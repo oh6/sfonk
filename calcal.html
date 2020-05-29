@@ -15,17 +15,13 @@ recipes.
 <h2> Options </h2>
 
 <p>
-The <code>-r</code> option prints a running total.  I pretty
-much never use it and it probably should be removed.
-</p>
-
-<p>
 The <code>-s</code> option puts <code>calcal</code> into
 "summarize" mode, where all lines from the input are appended to
 <code>~/.calcal.log</code>, any lines recording eating anything are
 rolled up into a single <code>overflow</code> item, and the current
-stores, new prepared recipes, and other items are copied to the
-output, with the current date in a comment at the top.
+stores, new prepared recipes, container weights, and other items
+are copied to the output, with the current date in a comment at the
+top.
 </p>
 
 <p>
@@ -34,6 +30,13 @@ day run the file through <code>calcal -s</code> in the editor to
 bring it up to date.  Note that if a file is summarized multiple
 times without replacing the contents this way, it will get recorded
 multiple times.
+</p>
+
+<p>
+The <code>-c</code> option does a simple clean-up operation on
+the log, to deal with the multiple entries mentioned above.  Exact
+duplicates are removed, logs with the same date are compared and I
+get prompted as to whether to remove the later one or edit it.
 </p>
 
 <h1> Input Format </h1>
@@ -186,17 +189,16 @@ entries like this:
 </p>
 
 <pre>
-ketchup 980+
-ketchup 900-
+980	ketchup+
+900	ketchup-
 </pre>
 
 <p>
 The <code>-</code> entry is subtracted from the <code>+</code>
 entry and is used as the amount.  Note that you can't currently use
 <code>+</code> or <code>-</code> on <em>quantity</em> if you use
-it with <em>item</em>.  If I've already recorded a weight for a
-container, I can omit the <code>+</code> entry and <code>calcal</code>
-will find the most recent weighing in <code>~/.calcal.log</code>.
+it with <em>item</em>.  Container weights are recorded in the
+summary, so for later uses I can omit the <code>+</code> entry 
 </p>
 
 <p>
@@ -257,7 +259,7 @@ ingredient store, but I haven't implemented it yet.
 <h1> Example </h1>
 
 <p>
-Here's my current "day card":
+Suppose this was my current "day card":
 </p>
 
 <pre>
@@ -273,6 +275,8 @@ boksf:          2608 761V/4
 51+	honey
 449+	apricot jam
 1727+	soy milk
+
+1058	olive oil+
 
 1725	overflow
 51	honey
@@ -352,6 +356,8 @@ boksf:          2608 761V/4
 0+      honey
 449+    apricot jam
 1727+   soy milk
+
+1027	olive oil+
 
 1305    overflow # target: 1225
 </pre>
