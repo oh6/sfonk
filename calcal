@@ -431,7 +431,7 @@ class Cal:
 					ic += " " + e.c
 
 				ic += "%s = %d" % (ov, v)
-			if ig in self.store:
+			if ig in self.store and (v >= 0 or not ig in self.cw):
 				self.store[ig] -= v
 				if self.store[ig] < 0:
 					v += self.store[ig]
