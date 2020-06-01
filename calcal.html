@@ -198,7 +198,7 @@ The <code>-</code> entry is subtracted from the <code>+</code>
 entry and is used as the amount.  Note that you can't currently use
 <code>+</code> or <code>-</code> on <em>quantity</em> if you use
 it with <em>item</em>.  Container weights are recorded in the
-summary, so for later uses I can omit the <code>+</code> entry 
+summary, so for later uses I can omit the <code>+</code> entry.
 </p>
 
 <p>
@@ -264,31 +264,33 @@ Suppose this was my current "day card":
 
 <pre>
 # 2020/05/18
-day:		-2300/1
-horseradish:	18/14		# bubbies
-chocolate:	200/40		# nn dark
-soy milk:	90/250		# silk unsweetened
-apricot jam:	1666/671
+day:            -2300/1
+horseradish:    18/14           # bubbies
+chocolate:      200/40          # nn dark
+soy milk:       90/250          # silk unsweetened
+apricot jam:    1666/671
 oatmeal:        1793/4
 boksf:          2608 761V/4
 
-51+	honey
-449+	apricot jam
-1727+	soy milk
+51+     honey
+449+    apricot jam
+1727+   soy milk
+472+	olive oil
 
-1058	olive oil+
+1058    olive oil+
+693	ketchup+
 
-1725	overflow
-51	honey
-1	oatmeal
-1	boksf
-26	brown sugar
-3.3	walking
-550	potato
-1027	olive oil-
--15	olive oil
-550	ketchup-
-1	day
+1725    overflow
+51      honey
+1       oatmeal
+1       boksf
+26      brown sugar
+3.3     walking
+550     potato
+1027    olive oil-
+-15     olive oil
+550     ketchup-
+1       day
 </pre>
 
 <p>
@@ -302,9 +304,7 @@ Notes:
 <p>
 The <code>-15 olive oil</code> entry is there to compensate for
 how much oil got left on the pan (I was making oven fries) and in
-the mixing bowl.  If I was keeping track of how much olive oil I
-had on hand, this would mess that up, something I'll have to fix
-someday.
+the mixing bowl.  Note that this isn't subtracted from the storek
 </p>
 
 <p>
@@ -312,7 +312,6 @@ Running this through <code>calcal</code>:
 </p>
 
 <pre>
-$ calcal card
   1725.0   1725.0      1.0 overflow
    155.1     51.0      3.0 honey (by weight)
    448.2      1.0    448.2 oatmeal
@@ -323,7 +322,7 @@ $ calcal card
    274.0     31.0      8.8 olive oil
   -132.6    -15.0      8.8 olive oil
    130.0    143.0      0.9 ketchup (by weight)
- -2300.0      1.0  -2300.0 day (190 veg 0 fruit) (net 1305 target 1225 offset 79)
+ -2300.0      1.0  -2300.0 day (190 veg) (net 1305 target 1225 offset 80)
 1305
 </pre>
 
@@ -333,18 +332,12 @@ before yesterday.
 </p>
 
 <p>
-I also appear to be reporting some numbers after rounding, and
-others before rounding, which is why <code>net</code>, <code>target</code>,
-and <code>offset</code> don't add up.
-</p>
-
-<p>
 Here's what the day card looks like after rolling it over with
 <code>calcal -s</code>:
 </p>
 
 <pre>
-# 2020/05/19
+# 2020/06/01
 day:            -2300/1
 horseradish:    18/14           # bubbies
 chocolate:      200/40          # nn dark
@@ -356,8 +349,10 @@ boksf:          2608 761V/4
 0+      honey
 449+    apricot jam
 1727+   soy milk
+472+    olive oil
 
-1027	olive oil+
+1027    olive oil+
+550     ketchup+
 
 1305    overflow # target: 1225
 </pre>

@@ -177,6 +177,11 @@ class Cal:
 		sys.exit(1)
 
 
+	def cwerror(self, n, o, ig):
+		self.error("weight %d greater than previous %d for %s" %
+			(n, o, ig))
+
+
 	def unify(self, s):
 		if s == "":
 			self.error("amount missing")
@@ -413,6 +418,8 @@ class Cal:
 		ov = v
 		v = self.unify(v)
 		if cwval:
+			if cwval < v:
+				self.cwerror(v, cwval, ig)
 			self.cw[ig] = v
 			v = cwval - v
 		sig = ig.split("@")
@@ -431,7 +438,7 @@ class Cal:
 					ic += " " + e.c
 
 				ic += "%s = %d" % (ov, v)
-			if ig in self.store and (v >= 0 or not ig in self.cw):
+			if ig in self.store and not ig in self.cw:
 				self.store[ig] -= v
 				if self.store[ig] < 0:
 					v += self.store[ig]
