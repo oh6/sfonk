@@ -305,7 +305,6 @@ class Cal:
 	def lcw(self, ig):
 		if not ig in self.cw:
 			self.error("no last weighing for %s" % ig)
-			return None
 
 		return self.cw[ig]
 
@@ -411,8 +410,6 @@ class Cal:
 			if self.badig(ig):
 				return
 			cwval = self.lcw(ig)
-			if cwval == None:
-				return
 
 		un = uname(v)
 		ov = v
@@ -431,14 +428,15 @@ class Cal:
 			ic = self.db[ig].c
 			if ic == None:
 				ic = ""
+
 			if (ig, un) in self.eq:
 				e = self.eq[(ig, un)]
 				v *= e.v
 				if e.c:
 					ic += " " + e.c
-
 				ic += "%s = %d" % (ov, v)
-			if ig in self.store and not ig in self.cw:
+
+			if ig in self.store and not (cwval == None and ig in self.cw):
 				self.store[ig] -= v
 				if self.store[ig] < 0:
 					v += self.store[ig]
