@@ -8,7 +8,7 @@
 
 <p>
 Calcal tracks calories and a selection of other food categories,
-and tracks stores of ingredients, container weights, and prepared
+and tracks items on hand, container weights, and prepared
 recipes.
 </p>
 
@@ -18,8 +18,8 @@ recipes.
 The <code>-s</code> option puts <code>calcal</code> into
 "summarize" mode, where all lines from the input are appended to
 <code>~/.calcal.log</code>, any lines recording eating anything are
-rolled up into a single <code>overflow</code> item, and the current
-stores, new prepared recipes, container weights, and other items
+rolled up into a single <code>overflow</code> item, and the items
+on hand, new prepared recipes, container weights, and other entries
 are copied to the output, with the current date in a comment at the
 top.
 </p>
@@ -119,12 +119,6 @@ calorie amounts from one day to the next.
 </p>
 
 <p>
-<em>Amount</em> can't have a unit, that is, you can't
-define <code>ounce</code> and then use it to define <code>pound</code>.
-Sorry!
-</p>
-
-<p>
 The special unit <code>DELTA</code> (all upper case) is used
 to suggest a calorie target for the day when I've gone way
 overboard.
@@ -159,8 +153,8 @@ The big one!  Most of my time is spent fretting over these.
 
 <p>
 If <em>quantity</em> ends with <code>+</code> or <code>-</code>,
-this is used to update the ingredient store information, and has
-no effect on recorded calorie intake.  Ingredient stores are preserved
+this is used to update the items on hand, and has
+no effect on recorded calorie intake.  Items on hand are preserved
 when summarizing, so I can do something like:
 </p>
 
@@ -170,15 +164,15 @@ when summarizing, so I can do something like:
 
 <p>
 to record that I got in a 1-kilogram container of honey.  Later
-ordinary items will subtract from this
-store, bottoming out when it hits zero.  There ought to be a warning
-if that happens, but there isn't.
+ordinary items will subtract from this value, bottoming out when
+it hits zero.  There ought to be a warning if that happens, but
+there isn't.
 </p>
 
 <p>
 I use this to catch any errors in recording.
 If I've used up a container but there's still something left
-in the ingredient store, I forgot to record something.
+in the items on hand, I forgot to record something.
 </p>
 
 <p>
@@ -195,10 +189,23 @@ entries like this:
 
 <p>
 The <code>-</code> entry is subtracted from the <code>+</code>
-entry and is used as the amount.  Note that you can't currently use
-<code>+</code> or <code>-</code> on <em>quantity</em> if you use
-it with <em>item</em>.  Container weights are recorded in the
-summary, so for later uses I can omit the <code>+</code> entry.
+entry and is used as the amount.  Container weights are recorded
+in the summary, so for later uses I can omit the <code>+</code>
+entry.
+</p>
+
+<p>
+<em>Quantity</em> can't end with <code>+</code> or <code>-</code>
+if <em>item</em> ends with <code>+</code> or <code>-</code>.  This
+ought to be an error, but it isn't yet.
+</p>
+
+<p>
+If a container weight was given previously, any entry without
+a container weight for that item won't update the items on hand.
+This way I can adjust for losses in preparation or re-use nutritional
+information for something I ate that didn't come out of my items
+on hand.
 </p>
 
 <p>
@@ -212,7 +219,7 @@ it from <em>item</em> with <code>@</code>:
 </pre>
 
 <p>
-This doesn't work with container weights either, sorry!
+This doesn't work with container weights, sorry!
 </p>
 
 <h2> Prepared Recipes </h2>
@@ -253,7 +260,7 @@ turns into
 
 <p>
 after summarizing.  I suppose it might also make sense to add this to the
-ingredient store, but I haven't implemented it yet.
+items on hand, but I haven't implemented it yet.
 </p>
 
 <h1> Example </h1>
@@ -304,7 +311,7 @@ Notes:
 <p>
 The <code>-15 olive oil</code> entry is there to compensate for
 how much oil got left on the pan (I was making oven fries) and in
-the mixing bowl.  Note that this isn't subtracted from the storek
+the mixing bowl.
 </p>
 
 <p>
@@ -349,7 +356,7 @@ boksf:          2608 761V/4
 0+      honey
 449+    apricot jam
 1727+   soy milk
-472+    olive oil
+441+    olive oil
 
 1027    olive oil+
 550     ketchup+

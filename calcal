@@ -195,7 +195,7 @@ class Cal:
 			n = float(n)
 		if u in self.units:
 			n *= self.units[u].v
-		elif u != "g" and u != "ml" and u != "":
+		elif u != "":
 			self.error("weird unit %s\n" % u)
 
 		return n
@@ -270,7 +270,7 @@ class Cal:
 			self.ddelta = float(v[1].strip())
 			return True
 
-		self.units[u] = dbent(float(v[1].strip()), c)
+		self.units[u] = dbent(self.unify(v[1]), c)
 		return True
 
 
