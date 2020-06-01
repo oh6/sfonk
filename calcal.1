@@ -1,0 +1,47 @@
+.Dd April 30, 2016
+.Dt COR 1
+.Sh NAME
+.Nm calcal
+.Nd calorie calculator
+.Sh SYNOPSIS
+.Nm
+[
+.Fl rs
+] [
+.Ar file
+]
+.Sh DESCRIPTION
+Tracks calories and a selection of other food categories, and tracks stores of
+ingredients, container weights, and prepared recipes.
+.Pp
+The
+.Fl r
+option prints a running total.  I pretty much never use it and it probably should
+be removed.
+.Pp
+The
+.Fl s
+option puts
+.Nm
+into "summarize" mode, where all lines from the input are appended to
+.Pa Ns Pa /.calcal.log ,
+any lines recording eating anything are rolled up into a single "overflow" item,
+and the current stores, new prepared recipes, and other items are copied to the output,
+with the current date in a comment at the top.
+The idea is that you record whatever you're eating for the day in a file, and the
+next day run the file through
+.Nm Fl s
+in the editor to bring it up to date.  Note that if a file is summarized multiple
+times without replacing the contents this way, it will get recorded multiple times.
+.Pp
+The input format is documented in
+.Pa calcal.html
+as I can't be bothered to figure out the markup.
+.Sh FILES
+.Bl -tag -width x/.corrhost -compact
+.It Pa Ns /.calories
+data base of nutritional information, units, and conversions
+.It Pa Ns /.calcal.log
+records summarized files.
+.Sh BUGS
+Unreasonably quirky and not really meant for more than one person.
