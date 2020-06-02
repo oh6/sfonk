@@ -258,19 +258,20 @@ class Cal:
 
 	def add_u(self, l):
 		(l, c) = comment(l)
-		v = l.split("=")
+		v = [x.strip() for x in l.split("=")]
 		if len(v) != 2:
 			return False
 
-		u = v[0].strip()
+		u = v[0]
+		v = v[1]
 		if u[:1].isdigit():
 			return False
 
 		if u == "DELTA":
-			self.ddelta = float(v[1].strip())
+			self.ddelta = float(v)
 			return True
 
-		self.units[u] = dbent(self.unify(v[1]), c)
+		self.units[u] = dbent(self.unify(v), c)
 		return True
 
 
